@@ -122,6 +122,25 @@ func TestBangOperator(t *testing.T) {
 	}
 }
 
+func TestSuffixExpressions(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"let i = 100; i++;", 101},
+		{"let i = 100; i++; i++;", 102},
+		{"let i = -100; i++;", -99},
+		{"let i = 100; i--;", 99},
+		{"let i = 100; i--; i--;", 98},
+		{"let i = -100; i--;", -101},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+	}
+}
+
 func TestIfElseExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -532,6 +551,26 @@ func TestHashIndexExpressions(t *testing.T) {
 			`{false: 5}[false]`,
 			5,
 		},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		integer, ok := tt.expected.(int)
+		if ok {
+			testIntegerObject(t, evaluated, int64(integer))
+		} else {
+			testNullObject(t, evaluated)
+		}
+	}
+}
+
+func TestForExpressions(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{"let sum = 0; for (let i = 0; i < 2; i++) { sum++; };", 2},
+		{"let sum = 0; for (let i = 0; i < 0; i++) { sum++; };", nil},
 	}
 
 	for _, tt := range tests {

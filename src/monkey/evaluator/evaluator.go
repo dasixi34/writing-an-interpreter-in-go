@@ -33,6 +33,18 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		return evalPrefixExpression(node.Operator, right)
 
+	case *ast.SuffixExpression:
+		identifier := Eval(node.Identifier, env)
+		if isError(identifier) {
+			return identifier
+		}
+		val := evalSuffixExpression(node.Operator, identifier)
+		if isError(val) {
+			return val
+		}
+		env.Set(node.Identifier.Value, val)
+		return val
+
 	case *ast.InfixExpression:
 		left := Eval(node.Left, env)
 		if isError(left) {
@@ -111,6 +123,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.HashLiteral:
 		return evalHashLiteral(node, env)
+
+	case *ast.ForExpression:
+		return evalForExpression(node, env)
 	}
 
 	return nil
@@ -171,6 +186,35 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 
 	value := right.(*object.Integer).Value
 	return &object.Integer{Value: -value}
+}
+
+func evalSuffixExpression(operator string, left object.Object) object.Object {
+	switch operator {
+	case "++":
+		return evalIncrementOperatorExpression(left)
+	case "--":
+		return evalDecrementOperatorExpression(left)
+	default:
+		return newError("unknown operator: %s%s", left.Type(), operator)
+	}
+}
+
+func evalIncrementOperatorExpression(left object.Object) object.Object {
+	if left.Type() != object.INTEGER_OBJ {
+		return newError("unknown operator: %s++", left.Type())
+	}
+
+	value := left.(*object.Integer).Value
+	return &object.Integer{Value: value + 1}
+}
+
+func evalDecrementOperatorExpression(left object.Object) object.Object {
+	if left.Type() != object.INTEGER_OBJ {
+		return newError("unknown operator: %s--", left.Type())
+	}
+
+	value := left.(*object.Integer).Value
+	return &object.Integer{Value: value - 1}
 }
 
 func evalInfixExpression(
@@ -403,6 +447,36 @@ func evalHashLiteral(node *ast.HashLiteral, env *object.Environment) object.Obje
 	}
 
 	return &object.Hash{Pairs: pairs}
+}
+
+func evalForExpression(fe *ast.ForExpression, env *object.Environment) object.Object {
+	initializer := Eval(fe.Initializer, env)
+	if isError(initializer) {
+		return initializer
+	}
+
+	var result object.Object = NULL
+
+	for {
+		condition := Eval(fe.Condition, env)
+		if isError(condition) {
+			return condition
+		}
+
+		if !isTruthy(condition) {
+			return result
+		}
+
+		result = Eval(fe.Body, env)
+		if isError(result) {
+			return result
+		}
+
+		updater := Eval(fe.Updater, env)
+		if isError(updater) {
+			return updater
+		}
+	}
 }
 
 func newError(format string, a ...interface{}) *object.Error {

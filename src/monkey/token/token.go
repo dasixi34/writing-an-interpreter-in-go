@@ -17,12 +17,14 @@ const (
 	STRING = "STRING"
 
 	// 演算子
-	ASSIGN   = "="
-	PLUS     = "+"
-	MINUS    = "-"
-	BANG     = "!"
-	ASTERISK = "*"
-	SLASH    = "/"
+	ASSIGN    = "="
+	PLUS      = "+"
+	MINUS     = "-"
+	BANG      = "!"
+	ASTERISK  = "*"
+	SLASH     = "/"
+	INCREMENT = "++"
+	DECREMENT = "--"
 
 	LT = "<"
 	GT = ">"
@@ -51,6 +53,7 @@ const (
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
 	MACRO    = "MACRO"
+	FOR      = "FOR"
 )
 
 var keywords = map[string]TokenType{
@@ -62,6 +65,7 @@ var keywords = map[string]TokenType{
 	"else":   ELSE,
 	"return": RETURN,
 	"macro":  MACRO,
+	"for":    FOR,
 }
 
 func LookupIdent(ident string) TokenType {
