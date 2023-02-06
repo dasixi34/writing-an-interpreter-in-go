@@ -139,6 +139,25 @@ func (pe *PrefixExpression) String() string {
 	return out.String()
 }
 
+type SuffixExpression struct {
+	Token      token.Token // 後置トークン、例えば「++」
+	Identifier *Identifier
+	Operator   string
+}
+
+func (se *SuffixExpression) expressionNode()      {}
+func (se *SuffixExpression) TokenLiteral() string { return se.Token.Literal }
+func (se *SuffixExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(se.Identifier.String())
+	out.WriteString(se.Operator)
+	out.WriteString(")")
+
+	return out.String()
+}
+
 type InfixExpression struct {
 	Token    token.Token // 演算子トークン、例えば「+」
 	Left     Expression
@@ -354,6 +373,31 @@ func (ml *MacroLiteral) String() string {
 	out.WriteString(strings.Join(params, ", "))
 	out.WriteString(") ")
 	out.WriteString(ml.Body.String())
+
+	return out.String()
+}
+
+type ForExpression struct {
+	Token       token.Token // token.FOR トークン
+	Initializer Statement
+	Condition   Expression
+	Updater     Expression
+	Body        *BlockStatement
+}
+
+func (fe *ForExpression) expressionNode()      {}
+func (fe *ForExpression) TokenLiteral() string { return fe.Token.Literal }
+func (fe *ForExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("for (")
+	out.WriteString(fe.Initializer.String())
+	out.WriteString(" ")
+	out.WriteString(fe.Condition.String())
+	out.WriteString(" ")
+	out.WriteString(fe.Updater.String())
+	out.WriteString(") ")
+	out.WriteString(fe.Body.String())
 
 	return out.String()
 }

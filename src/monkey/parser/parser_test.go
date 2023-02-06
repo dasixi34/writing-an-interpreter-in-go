@@ -280,6 +280,56 @@ func TestParsingPrefixExpressions(t *testing.T) {
 	}
 }
 
+func TestParsingSuffixExpressions(t *testing.T) {
+	suffixTests := []struct {
+		input      string
+		identifier string
+		operator   string
+	}{
+		{"i++;", "i", "++"},
+		{"i--;", "i", "--"},
+	}
+
+	for _, tt := range suffixTests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain %d statements. got=%d\n", 1, len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not as.ExpressionStatement. got=%T", program.Statements[0])
+		}
+
+		if !testSuffixExpression(t, stmt.Expression, tt.identifier, tt.operator) {
+			return
+		}
+	}
+}
+
+func testSuffixExpression(t *testing.T, exp ast.Expression, identifier string, operator string) bool {
+	opExp, ok := exp.(*ast.SuffixExpression)
+	if !ok {
+		t.Errorf("exp is not ast.SuffixExpression. got=%T(%s)", exp, exp)
+		return false
+	}
+
+	if !testIdentifier(t, opExp.Identifier, identifier) {
+		return false
+	}
+
+	if opExp.Operator != operator {
+		t.Errorf("exp.Operator is not '%s'. got=%q", operator, opExp.Operator)
+		return false
+	}
+
+	return true
+}
+
 func TestParsingInfixExpressions(t *testing.T) {
 	infixTests := []struct {
 		input      string
@@ -976,4 +1026,57 @@ func TestMacroLiteralParsing(t *testing.T) {
 	}
 
 	testInfixExpression(t, bodyStmt.Expression, "x", "+", "y")
+}
+
+func TestForExpression(t *testing.T) {
+	input := `for (let i = 0; i < 10; i++) { sum++ }`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain %d statements. got=%d\n", 1, len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+
+	exp, ok := stmt.Expression.(*ast.ForExpression)
+	if !ok {
+		t.Fatalf("stmt.Expression is not *ast.ForStatement. got=%T", stmt.Expression)
+	}
+
+	if !testLetStatement(t, exp.Initializer, "i") {
+		return
+	}
+
+	val := exp.Initializer.(*ast.LetStatement).Value
+	if !testLiteralExpression(t, val, 0) {
+		return
+	}
+
+	if !testInfixExpression(t, exp.Condition, "i", "<", 10) {
+		return
+	}
+
+	if !testSuffixExpression(t, exp.Updater, "i", "++") {
+		return
+	}
+
+	if len(exp.Body.Statements) != 1 {
+		t.Fatalf("body is not 1 statements. got=%d\n", len(exp.Body.Statements))
+	}
+
+	body, ok := exp.Body.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Statements[0] is not ast.ExpressionStatement. got=%T", exp.Body.Statements[0])
+	}
+
+	if !testSuffixExpression(t, body.Expression, "sum", "++") {
+		return
+	}
 }
